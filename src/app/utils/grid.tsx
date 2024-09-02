@@ -9,26 +9,7 @@ export const generateEmptyArray = (size = BLOCK_SIZE) => {
 }
 
 export const generateGrid = (startingValues = 10): CellValue[][] => {
-  const grid: CellValue[][] = []
-  for (let i = 0; i < BLOCK_SIZE**2; i++) {
-    grid.push([])
-    for (let j = 0; j < BLOCK_SIZE**2; j++) {
-      grid[i].push(null)
-    }
-  }
-
-  for (let i = 0; i < BLOCK_SIZE**2; i++) {
-    for (let j = 0; j < BLOCK_SIZE**2; j++) {
-      let availableNumbers = generateEmptyArray(BLOCK_SIZE**2).map(n => n+1)
-      while (!isValidCellValue(grid, i, j)) {
-        let randIdx = availableNumbers.length === 1
-          ? 0
-          : randomInt(availableNumbers.length - 1)
-        let selectedNumber = availableNumbers.splice(randIdx, 1)[0]
-        grid[i][j] = selectedNumber
-      }
-    }
-  }
+  const grid = initSolvedGrid()
 
   const coordinateKey = (x: number, y: number) => `${x},${y}`
   const coordinatesToUse = new Set()
@@ -55,6 +36,50 @@ export const generateGrid = (startingValues = 10): CellValue[][] => {
   return grid
 }
 
+const initSolvedGrid = (): CellValue[][] => {
+  const initGrid: CellValue[][] = []
+  for (let i = 0; i < BLOCK_SIZE**2; i++) {
+    initGrid.push([])
+    for (let j = 0; j < BLOCK_SIZE**2; j++) {
+      initGrid[i].push(null)
+    }
+  }
+
+  const grid = gridFrom(initGrid, 0, 0)
+  return grid ?? initGrid
+}
+
+const gridFrom = (initGrid: CellValue[][], i: number, j: number): CellValue[][] | null => {
+  const grid = structuredClone(initGrid)
+  console.log(`${i},${j}`)
+  if (i >= grid.length) {
+    return grid
+  }
+
+  if (j >= grid.length) {
+    return gridFrom(grid, i + 1, 0)
+  }
+
+  if (isValidCellValue(grid, i, j)) {
+    return gridFrom(grid, i, j + 1)
+  }
+
+  let availableNumbers = generateEmptyArray(BLOCK_SIZE**2).map(n => n+1)
+  while (availableNumbers.length > 0) {
+    let randIdx = availableNumbers.length === 1 ? 0 : randomInt(availableNumbers.length - 1)
+    let selectedNumber = availableNumbers.splice(randIdx, 1)[0]
+    grid[i][j] = selectedNumber
+    if (isValidCellValue(grid, i, j)) {
+      let candidateGrid = gridFrom(grid, i, j + 1)
+      if (candidateGrid) {
+        return candidateGrid
+      }
+    }
+  }
+
+  return null
+}
+
 export const isValidCellValue = (grid: CellValue[][], i: number, j: number): boolean => {
   const value = grid[i][j]
   if (value === null) {
@@ -65,14 +90,16 @@ export const isValidCellValue = (grid: CellValue[][], i: number, j: number): boo
   const row = grid[i]
   for (let idx = 0; idx < row.length; idx++) {
     if (idx !== j && row[idx] === value) {
-      return false;
+      // console.log(`Invalid to use ${row[idx]} in row ${row}`)
+      return false
     }
   }
 
   // check column
   for (let idx = 0; idx < grid.length; idx++) {
     if (idx !== i && grid[idx][j] === value) {
-      return false;
+      // console.log(`Invalid to use ${grid[idx][j]} in col ${j}`)
+      return false
     }
   }
 
@@ -82,6 +109,7 @@ export const isValidCellValue = (grid: CellValue[][], i: number, j: number): boo
   for (let idx = quadrant_i; idx < (quadrant_i + BLOCK_SIZE); idx++) {
     for (let jdx = quadrant_j; jdx < (quadrant_j + BLOCK_SIZE); jdx++) {
       if (!(idx === i && jdx === j) && grid[idx][jdx] === value) {
+        // console.log(`Invalid to use ${grid[idx][jdx]} in quadrant ${quadrant_i},${quadrant_j}`)
         return false
       }
     }
