@@ -9,4 +9,3 @@ export interface CellError {
 }
 
 export type GridStateSetter = (x: number, y: number, value: CellValue) => void
-export type BulkGridStateSetter = (values: {x: number, y: number, value: CellValue}[]) => void

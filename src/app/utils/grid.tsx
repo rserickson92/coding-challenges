@@ -7,7 +7,7 @@ export const generateEmptyArray = (size = BLOCK_SIZE) => {
   return Array.from(Array(size).keys())
 }
 
-export const generateGrid = (startingValues = 20): CellValue[][] => {
+export const generateGrid = (startingValues = 40): CellValue[][] => {
   const grid = initSolvedGrid()
 
   const coordinateKey = (x: number, y: number) => `${x},${y}`
@@ -33,14 +33,6 @@ export const generateGrid = (startingValues = 20): CellValue[][] => {
   }
 
   return grid
-}
-
-export const clearGridErrors = (grid: CellValue[][]) => {
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid.length; j++) {
-      grid[i][j].errors = undefined
-    }
-  }
 }
 
 const initSolvedGrid = (): CellValue[][] => {

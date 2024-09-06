@@ -1,19 +1,19 @@
 "use client"
 
-import { ChangeEvent, useEffect, useState } from "react"
-import { BLOCK_SIZE, clearGridErrors, generateEmptyArray, propagateCellErrors, validateCellValue } from "./utils/grid"
-import { BulkGridStateSetter, CellValue, GridStateSetter } from "./utils/types"
+import { ChangeEvent, Dispatch, SetStateAction, useEffect, useState } from "react"
+import { BLOCK_SIZE, generateEmptyArray, propagateCellErrors, validateCellValue } from "./utils/grid"
+import { CellValue, GridStateSetter } from "./utils/types"
 
 interface CellProps {
   coordinates: number[]
   grid: CellValue[][]
+  setGrid: Dispatch<SetStateAction<CellValue[][]>>
   updateGrid: GridStateSetter
-  bulkUpdateGrid: BulkGridStateSetter
 }
 
-const Cell = ({ coordinates, grid, updateGrid, bulkUpdateGrid }: CellProps) => {
+const Cell = ({ coordinates, grid, setGrid, updateGrid }: CellProps) => {
   const [x, y] = coordinates
-  const defaultClassName = 'h-8 w-8'
+  const defaultClassName = 'h-8 w-8 text-center'
   const [className, setClassName] = useState(defaultClassName)
 
   const getValue = () => {
@@ -23,8 +23,21 @@ const Cell = ({ coordinates, grid, updateGrid, bulkUpdateGrid }: CellProps) => {
   const updateValue = (e: ChangeEvent<HTMLInputElement>) => {
     updateGrid(x, y, { value: parseInt(e.target.value) || null })
   }
+  const clearGridErrors = () => {
+    setGrid((prevGrid) => {
+      const newGrid = structuredClone(prevGrid)
+      for (let i = 0; i < newGrid.length; i++) {
+        for (let j = 0; j < newGrid.length; j++) {
+          newGrid[i][j].errors = undefined
+        }
+      }
+
+      return newGrid
+    })
+  }
+
   const handleFocus = () => {
-    clearGridErrors(grid)
+    clearGridErrors()
   }
 
   useEffect(() => {
@@ -54,11 +67,11 @@ interface CellRowProps {
   rowNumber: number
   blockCoordinates: number[]
   grid: CellValue[][]
+  setGrid: Dispatch<SetStateAction<CellValue[][]>>
   updateGrid: GridStateSetter
-  bulkUpdateGrid: BulkGridStateSetter
 }
 
-const CellRow = ({ rowNumber, blockCoordinates, grid, updateGrid, bulkUpdateGrid }: CellRowProps) => {
+const CellRow = ({ rowNumber, blockCoordinates, grid, setGrid, updateGrid }: CellRowProps) => {
   const colNumberOffset = blockCoordinates[1] * BLOCK_SIZE
   return (
     <tr>
@@ -67,8 +80,8 @@ const CellRow = ({ rowNumber, blockCoordinates, grid, updateGrid, bulkUpdateGrid
           <Cell
             key={i}
             grid={grid}
+            setGrid={setGrid}
             updateGrid={updateGrid}
-            bulkUpdateGrid={bulkUpdateGrid}
             coordinates={[rowNumber, colNumberOffset + i]}
           />
         )
@@ -80,11 +93,11 @@ const CellRow = ({ rowNumber, blockCoordinates, grid, updateGrid, bulkUpdateGrid
 interface BlockProps {
   blockCoordinates: number[]
   grid: CellValue[][]
+  setGrid: Dispatch<SetStateAction<CellValue[][]>>
   updateGrid: GridStateSetter
-  bulkUpdateGrid: BulkGridStateSetter
 }
 
-const Block = ({ blockCoordinates, grid, updateGrid, bulkUpdateGrid}: BlockProps) => {
+const Block = ({ blockCoordinates, grid, setGrid, updateGrid }: BlockProps) => {
   const rowNumberOffset = blockCoordinates[0] * BLOCK_SIZE
   return (
     <td>
@@ -95,8 +108,8 @@ const Block = ({ blockCoordinates, grid, updateGrid, bulkUpdateGrid}: BlockProps
               <CellRow
                 key={i}
                 grid={grid}
+                setGrid={setGrid}
                 updateGrid={updateGrid}
-                bulkUpdateGrid={bulkUpdateGrid}
                 rowNumber={i + rowNumberOffset}
                 blockCoordinates={blockCoordinates}
               />
@@ -111,19 +124,19 @@ const Block = ({ blockCoordinates, grid, updateGrid, bulkUpdateGrid}: BlockProps
 interface BlockRowProps {
   blockRowNumber: number
   grid: CellValue[][]
+  setGrid: Dispatch<SetStateAction<CellValue[][]>>
   updateGrid: GridStateSetter
-  bulkUpdateGrid: BulkGridStateSetter
 }
 
-const BlockRow = ({ blockRowNumber, grid, updateGrid, bulkUpdateGrid }: BlockRowProps) => {
+const BlockRow = ({ blockRowNumber, grid, setGrid, updateGrid }: BlockRowProps) => {
   return (
     <tr>
       {
         generateEmptyArray().map((_, i) =>
           <Block
             grid={grid}
+            setGrid={setGrid}
             updateGrid={updateGrid}
-            bulkUpdateGrid={bulkUpdateGrid}
             key={i}
             blockCoordinates={[blockRowNumber, i]}
           />
@@ -151,17 +164,6 @@ export default function SudokuGrid({ initialGrid }: { initialGrid: CellValue[][]
     })
   }
 
-  // TODO: Remove me if unused
-  const bulkUpdateGrid = (values: {x: number, y: number, value: CellValue}[]) => {
-    setGrid((prevGrid) => {
-      const newGrid = structuredClone(prevGrid)
-      values.forEach(value => {
-        newGrid[value.x][value.y] = value.value
-      })
-      return newGrid
-    })
-  }
-
   return (
     <table>
       <tbody>
@@ -171,8 +173,8 @@ export default function SudokuGrid({ initialGrid }: { initialGrid: CellValue[][]
               key={i}
               blockRowNumber={i}
               grid={grid}
+              setGrid={setGrid}
               updateGrid={updateGrid}
-              bulkUpdateGrid={bulkUpdateGrid}
             />
           )
         }
