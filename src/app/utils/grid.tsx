@@ -1,14 +1,13 @@
 import { randomInt } from "crypto"
+import { CellError, CellValue } from "./types"
 
 export const BLOCK_SIZE = 3
-
-export type CellValue = number | null
 
 export const generateEmptyArray = (size = BLOCK_SIZE) => {
   return Array.from(Array(size).keys())
 }
 
-export const generateGrid = (startingValues = 10): CellValue[][] => {
+export const generateGrid = (startingValues = 20): CellValue[][] => {
   const grid = initSolvedGrid()
 
   const coordinateKey = (x: number, y: number) => `${x},${y}`
@@ -28,7 +27,7 @@ export const generateGrid = (startingValues = 10): CellValue[][] => {
       if (coordinatesToUse.has(coordinateKey(i, j))) {
         coordinatesToUse.delete(coordinateKey(i, j))
       } else {
-        grid[i][j] = null
+        grid[i][j] = { value: null }
       }
     }
   }
@@ -36,12 +35,20 @@ export const generateGrid = (startingValues = 10): CellValue[][] => {
   return grid
 }
 
+export const clearGridErrors = (grid: CellValue[][]) => {
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid.length; j++) {
+      grid[i][j].errors = undefined
+    }
+  }
+}
+
 const initSolvedGrid = (): CellValue[][] => {
   const initGrid: CellValue[][] = []
   for (let i = 0; i < BLOCK_SIZE**2; i++) {
     initGrid.push([])
     for (let j = 0; j < BLOCK_SIZE**2; j++) {
-      initGrid[i].push(null)
+      initGrid[i].push({ value: null })
     }
   }
 
@@ -51,7 +58,6 @@ const initSolvedGrid = (): CellValue[][] => {
 
 const gridFrom = (initGrid: CellValue[][], i: number, j: number): CellValue[][] | null => {
   const grid = structuredClone(initGrid)
-  console.log(`${i},${j}`)
   if (i >= grid.length) {
     return grid
   }
@@ -60,7 +66,7 @@ const gridFrom = (initGrid: CellValue[][], i: number, j: number): CellValue[][] 
     return gridFrom(grid, i + 1, 0)
   }
 
-  if (isValidCellValue(grid, i, j)) {
+  if (!validateCellValue(grid, i, j).length) {
     return gridFrom(grid, i, j + 1)
   }
 
@@ -68,8 +74,9 @@ const gridFrom = (initGrid: CellValue[][], i: number, j: number): CellValue[][] 
   while (availableNumbers.length > 0) {
     let randIdx = availableNumbers.length === 1 ? 0 : randomInt(availableNumbers.length - 1)
     let selectedNumber = availableNumbers.splice(randIdx, 1)[0]
-    grid[i][j] = selectedNumber
-    if (isValidCellValue(grid, i, j)) {
+    grid[i][j] = { value: selectedNumber }
+    let errors = validateCellValue(grid, i, j)
+    if (!errors.length) {
       let candidateGrid = gridFrom(grid, i, j + 1)
       if (candidateGrid) {
         return candidateGrid
@@ -80,40 +87,71 @@ const gridFrom = (initGrid: CellValue[][], i: number, j: number): CellValue[][] 
   return null
 }
 
-export const isValidCellValue = (grid: CellValue[][], i: number, j: number): boolean => {
-  const value = grid[i][j]
-  if (value === null) {
-    return false
+export const propagateCellErrors = (grid: CellValue[][], i: number, j: number) => {
+  const errors = grid[i][j].errors
+  if (!errors?.length) {
+    return
   }
 
-  // check row
-  const row = grid[i]
-  for (let idx = 0; idx < row.length; idx++) {
-    if (idx !== j && row[idx] === value) {
-      // console.log(`Invalid to use ${row[idx]} in row ${row}`)
-      return false
-    }
-  }
-
-  // check column
-  for (let idx = 0; idx < grid.length; idx++) {
-    if (idx !== i && grid[idx][j] === value) {
-      // console.log(`Invalid to use ${grid[idx][j]} in col ${j}`)
-      return false
-    }
-  }
-
-  // check square
-  let quadrant_i = i - (i % BLOCK_SIZE)
-  let quadrant_j = j - (j % BLOCK_SIZE)
-  for (let idx = quadrant_i; idx < (quadrant_i + BLOCK_SIZE); idx++) {
-    for (let jdx = quadrant_j; jdx < (quadrant_j + BLOCK_SIZE); jdx++) {
-      if (!(idx === i && jdx === j) && grid[idx][jdx] === value) {
-        // console.log(`Invalid to use ${grid[idx][jdx]} in quadrant ${quadrant_i},${quadrant_j}`)
-        return false
+  if (errors.some(e => e.code === 'row')) {
+    const row = grid[i]
+    for (let idx = 0; idx < row.length; idx++) {
+      if (idx !== j) {
+        (row[idx].errors ||= []).push({ code: 'row' })
       }
     }
   }
 
-  return true
+  if (errors.some(e => e.code === 'column')) {
+    for (let idx = 0; idx < grid.length; idx++) {
+      if (idx !== i) {
+        (grid[idx][j].errors ||= []).push({ code: 'column' })
+      }
+    }
+  }
+
+  if (errors.some(e => e.code === 'square')) {
+    let quadrant_i = i - (i % BLOCK_SIZE)
+    let quadrant_j = j - (j % BLOCK_SIZE)
+    for (let idx = quadrant_i; idx < (quadrant_i + BLOCK_SIZE); idx++) {
+      for (let jdx = quadrant_j; jdx < (quadrant_j + BLOCK_SIZE); jdx++) {
+        if (!(idx === i && jdx === j)) {
+          (grid[idx][jdx].errors ||= []).push({ code: 'square' })
+        }
+      }
+    }
+  }
+}
+
+export const validateCellValue = (grid: CellValue[][], i: number, j: number): CellError[] => {
+  const value = grid[i][j].value
+  if (value === null) {
+    return [{code: 'empty'}]
+  }
+
+  const errors = []
+  const row = grid[i]
+  for (let idx = 0; idx < row.length; idx++) {
+    if (idx !== j && row[idx].value === value) {
+      errors.push({ code: 'row' })
+    }
+  }
+
+  for (let idx = 0; idx < grid.length; idx++) {
+    if (idx !== i && grid[idx][j].value === value) {
+      errors.push({ code: 'column' })
+    }
+  }
+
+  let quadrant_i = i - (i % BLOCK_SIZE)
+  let quadrant_j = j - (j % BLOCK_SIZE)
+  for (let idx = quadrant_i; idx < (quadrant_i + BLOCK_SIZE); idx++) {
+    for (let jdx = quadrant_j; jdx < (quadrant_j + BLOCK_SIZE); jdx++) {
+      if (!(idx === i && jdx === j) && grid[idx][jdx].value === value) {
+        errors.push({ code: 'square' })
+      }
+    }
+  }
+
+  return errors
 }
