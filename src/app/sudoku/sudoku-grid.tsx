@@ -1,8 +1,8 @@
 "use client"
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useState } from "react"
-import { BLOCK_SIZE, generateEmptyArray, propagateCellErrors, validateCellValue } from "./utils/grid"
-import { CellValue, GridStateSetter } from "./utils/types"
+import { BLOCK_SIZE, generateEmptyArray, propagateCellErrors, validateCellValue } from "../utils/grid"
+import { CellValue, GridStateSetter } from '../utils/types'
 
 interface CellProps {
   coordinates: number[]
@@ -165,7 +165,7 @@ export default function SudokuGrid({ initialGrid }: { initialGrid: CellValue[][]
   }
 
   return (
-    <table>
+    <table className="flex min-h-screen flex-col items-center justify-between p-24 text-black">
       <tbody>
         {
           generateEmptyArray().map((_, i) =>
