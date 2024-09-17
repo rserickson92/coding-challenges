@@ -66,7 +66,10 @@ const gridFrom = (initGrid: CellValue[][], i: number, j: number): CellValue[][] 
   while (availableNumbers.length > 0) {
     let randIdx = availableNumbers.length === 1 ? 0 : randomInt(availableNumbers.length - 1)
     let selectedNumber = availableNumbers.splice(randIdx, 1)[0]
-    grid[i][j] = { value: selectedNumber }
+    grid[i][j] = {
+      value: selectedNumber,
+      wasGenerated: true,
+    }
     let errors = validateCellValue(grid, i, j)
     if (!errors.length) {
       let candidateGrid = gridFrom(grid, i, j + 1)

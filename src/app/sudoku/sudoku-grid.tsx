@@ -20,6 +20,9 @@ const Cell = ({ coordinates, grid, setGrid, updateGrid }: CellProps) => {
     const value = grid[x][y]
     return value?.value ?? ''
   }
+  const valueIsDisabled = () => {
+    return grid[x][y].wasGenerated
+  }
   const updateValue = (e: ChangeEvent<HTMLInputElement>) => {
     updateGrid(x, y, { value: parseInt(e.target.value) || null })
   }
@@ -55,6 +58,7 @@ const Cell = ({ coordinates, grid, setGrid, updateGrid }: CellProps) => {
         type="text"
         inputMode="numeric"
         pattern="[1-9]"
+        disabled={valueIsDisabled()}
         value={getValue()}
         onChange={updateValue}
         onFocus={handleFocus}

@@ -1,6 +1,7 @@
 export interface CellValue {
     value: number | null
     errors?: CellError[]
+    wasGenerated?: boolean
 }
 
 export interface CellError {
