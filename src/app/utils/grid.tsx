@@ -150,3 +150,11 @@ export const validateCellValue = (grid: CellValue[][], i: number, j: number): Ce
 
   return errors
 }
+
+export const isSolved = (grid: CellValue[][]) => {
+  return grid.every(row => {
+    return row.every(cell => {
+      return cell.value && (!cell.errors || !cell.errors.length)
+    })
+  })
+}

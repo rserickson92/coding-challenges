@@ -1,7 +1,7 @@
 "use client"
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useState } from "react"
-import { BLOCK_SIZE, generateEmptyArray, propagateCellErrors, validateCellValue } from "../utils/grid"
+import { BLOCK_SIZE, generateEmptyArray, isSolved, propagateCellErrors, validateCellValue } from "../utils/grid"
 import { CellValue, GridStateSetter } from '../utils/types'
 
 interface CellProps {
@@ -150,9 +150,30 @@ const BlockRow = ({ blockRowNumber, grid, setGrid, updateGrid }: BlockRowProps) 
   )
 }
 
+interface GameTimerProps {
+  secondsElapsed: number
+}
+
+const GameTimer = ({ secondsElapsed }: GameTimerProps) => {
+  const zeroPad = (n: number) => {
+    return n.toString().padStart(2, '0')
+  }
+  const seconds = zeroPad(Math.floor(secondsElapsed % 60))
+  const minutes = zeroPad(Math.floor((secondsElapsed / 60) % 60));
+  const hours = zeroPad(Math.floor(secondsElapsed / 60 / 60));
+  const timeElapsed = `${hours}:${minutes}:${seconds}`
+  return (
+    <p className="text-green-700 text-3xl">
+      {timeElapsed}
+    </p>
+  )
+}
 
 export default function SudokuGrid({ initialGrid }: { initialGrid: CellValue[][] }) {
   const [grid, setGrid] = useState(initialGrid)
+  const [victorySeconds, setVictorySeconds] = useState(0)
+  const [secondsElapsed, setSecondsElapsed] = useState(0)
+
   const updateGrid = (x: number, y: number, value: CellValue) => {
     setGrid((prevGrid) => {
       const newGrid = structuredClone(prevGrid)
@@ -164,25 +185,42 @@ export default function SudokuGrid({ initialGrid }: { initialGrid: CellValue[][]
         propagateCellErrors(newGrid, x, y)
       }
 
+      if (isSolved(newGrid)) {
+        setVictorySeconds(secondsElapsed)
+      }
+
       return newGrid
     })
   }
 
+  useEffect(() => {
+    const secondsElapsedId = setInterval(() => {
+      setSecondsElapsed(s => s + 1)
+    }, 1000)
+
+    return () => {
+      clearInterval(secondsElapsedId)
+    }
+  }, [])
+
   return (
-    <table className="flex min-h-screen flex-col items-center justify-between p-24 text-black">
-      <tbody>
-        {
-          generateEmptyArray().map((_, i) =>
-            <BlockRow
-              key={i}
-              blockRowNumber={i}
-              grid={grid}
-              setGrid={setGrid}
-              updateGrid={updateGrid}
-            />
-          )
-        }
-      </tbody>
-    </table>
+    <div className="flex flex-col items-center m-12">
+      <GameTimer secondsElapsed={victorySeconds || secondsElapsed} />
+      <table className="flex min-h-screen flex-col items-center justify-between p-24 text-black">
+        <tbody>
+          {
+            generateEmptyArray().map((_, i) =>
+              <BlockRow
+                key={i}
+                blockRowNumber={i}
+                grid={grid}
+                setGrid={setGrid}
+                updateGrid={updateGrid}
+              />
+            )
+          }
+        </tbody>
+      </table>
+    </div>
   )
 }
