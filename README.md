@@ -1,3 +1,9 @@
+## Sudoku Coding Challenge
+
+I've always liked Sudoku and wanted to give John Crickett's [coding challenges](https://codingchallenges.fyi/challenges/challenge-sudoku) a try.
+
+## Next JS Boilerplate README content
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
