@@ -10,3 +10,8 @@ export interface CellError {
 }
 
 export type GridStateSetter = (x: number, y: number, value: CellValue) => void
+
+export interface WheelName {
+    name: string
+    color: string
+}
