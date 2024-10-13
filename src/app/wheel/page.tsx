@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react"
 
 const COLORS = [
   'red',
@@ -9,27 +9,68 @@ const COLORS = [
   'orange',
   'yellow',
   'purple',
-  'brown'
+  'brown',
+  'pink'
 ]
 
-export default function Page() {
-  const canvasRef = useRef(null)
-  const [names, setNames] = useState([])
-  const arcSize = (2 * Math.PI) / names.length
+interface WheelName {
+  name: string
+  color: string
+}
 
-  const updateNames = (e: any) => {
-    const newNames = e.target.value.split("\n").filter((n: string) => n)
-    setNames(newNames)
+export default function Page() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [wheelNames, setWheelNames] = useState<WheelName[]>([])
+  const arcSize = (2 * Math.PI) / wheelNames.length
+
+  const updateNames = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    const inputNames = e.target.value.split("\n").filter((n: string) => n)
+    setWheelNames((currentWheelNames) => {
+      const newWheelNames: WheelName[] = []
+      inputNames.forEach((iwn, i) => {
+        const existingWheelName = currentWheelNames.find(wn => wn.name === iwn)
+        if (!existingWheelName && newWheelNames.length) {
+          newWheelNames.push({
+            name: iwn,
+            color: selectColor(
+              newWheelNames[0].color,
+              newWheelNames[newWheelNames.length-1].color
+            )
+          })
+        } else if (existingWheelName) {
+          newWheelNames.push({
+            name: iwn,
+            color: existingWheelName.color
+          })
+        } else {
+          newWheelNames.push({
+            name: iwn,
+            color: selectColor()
+          })
+        }
+      })
+
+      return newWheelNames
+    })
   }
 
-  const draw = useCallback((ctx: CanvasRenderingContext2D) => {
+  const selectColor = (...except: string[]) => {
+    const colors = COLORS.filter(c => !except.includes(c))
+    return colors[Math.floor(Math.random() * colors.length)]
+  }
+
+  const draw = useCallback((ctx: CanvasRenderingContext2D | null) => {
+    if (!ctx) {
+      return
+    }
+  
     const center = { x: 250, y: 250 }
     const radius = 200
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
     ctx.fillStyle = '#000000'
 
-    names.forEach((name, i) => {
-      ctx.fillStyle = COLORS[Math.floor(Math.random() * COLORS.length)]
+    wheelNames.forEach((wheelName, i) => {
+      ctx.fillStyle = wheelName.color
       ctx.beginPath()
       ctx.arc(
         center.x,
@@ -43,7 +84,7 @@ export default function Page() {
       ctx.fill()
     })
 
-    names.forEach((name, i) => {
+    wheelNames.forEach((wheelName, i) => {
       ctx.save()
       ctx.translate(center.x, center.y)
       ctx.rotate(arcSize / 2)
@@ -51,13 +92,13 @@ export default function Page() {
       ctx.fillStyle = '#ffffff'
       ctx.font = '40px serif'
       ctx.textBaseline = 'middle'
-      ctx.fillText(name, 50, 0)
+      ctx.fillText(wheelName.name, 50, 0)
       ctx.restore()
     })
-  }, [arcSize, names])
+  }, [arcSize, wheelNames])
 
   useEffect(() => {
-    const canvas: any = canvasRef.current
+    const canvas = canvasRef.current
     if (!canvas) {
       return
     }
